@@ -374,7 +374,11 @@ class VMC::Client
   require 'httpclient'
 
   def perform_http_request(req)
-    proxy = ENV['https_proxy'] || ENV['http_proxy']
+    if URI::HTTPS === URI.parse(req[:url])
+      proxy = ENV['https_proxy'] || ENV['http_proxy']
+    else
+      proxy = ENV['http_proxy']
+    end
     @client ||= HTTPClient.new(proxy)
 
     # Setup tracing if needed

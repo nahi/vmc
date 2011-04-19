@@ -326,8 +326,6 @@ class VMC::Client
     end
   end
 
-  require 'rest_client'
-
   # HTTP helpers
 
   def http_get(path, content_type=nil)
@@ -358,7 +356,7 @@ class VMC::Client
 
     req = {
       :method => method, :url => "#{@target}#{path}",
-      :payload => payload, :headers => headers
+      :body => payload, :header => headers
     }
     status, body, response_headers = perform_http_request(req)
 
@@ -373,31 +371,37 @@ class VMC::Client
     raise BadTarget, "Cannot access target (%s)" % [ e.message ]
   end
 
+  require 'httpclient'
+
   def perform_http_request(req)
-    RestClient.proxy = ENV['https_proxy'] || ENV['http_proxy']
+    proxy = ENV['https_proxy'] || ENV['http_proxy']
+    @client ||= HTTPClient.new(proxy)
 
     # Setup tracing if needed
     unless trace.nil?
-      req[:headers]['X-VCAP-Trace'] = (trace == true ? '22' : trace)
+      req[:header]['X-VCAP-Trace'] = (trace == true ? '22' : trace)
     end
 
     result = nil
-    RestClient::Request.execute(req) do |response, request|
-      result = [ response.code, response.body, response.headers ]
-      unless trace.nil?
-        puts '>>>'
-        puts "PROXY: #{RestClient.proxy}" if RestClient.proxy
-        puts "REQUEST: #{req[:method]} #{req[:url]}"
-        puts "RESPONSE_HEADERS: #{response.headers}"
-        puts "REQUEST_BODY: #{req[:payload]}" if req[:payload]
-        puts "RESPONSE: [#{response.code}] #{response.body}"
-        puts '<<<'
-      end
+    method = req.delete(:method)
+    url = req.delete(:url)
+    response = @client.request(method, url, req)
+    # This is for RestClient compatibility. Needed? (spec passes without it)
+    headers = beautify_headers(response.headers)
+    result = [ response.code, response.body, headers ]
+    unless trace.nil?
+      puts '>>>'
+      puts "PROXY: #{RestClient.proxy}" if proxy
+      puts "REQUEST: #{req[:method]} #{req[:url]}"
+      puts "RESPONSE_HEADERS: #{response.headers}"
+      puts "REQUEST_BODY: #{req[:payload]}" if req[:payload]
+      puts "RESPONSE: [#{response.code}] #{response.body}"
+      puts '<<<'
     end
     result
-  rescue Net::HTTPBadResponse => e
+  rescue HTTPClient::BadResponseError => e
     raise BadTarget "Received bad HTTP response from target: #{e}"
-  rescue SystemCallError, RestClient::Exception => e
+  rescue SystemCallError, HTTPClient::TimeoutError => e
     raise HTTPException, "HTTP exception: #{e.class}:#{e}"
   end
 
@@ -430,6 +434,15 @@ class VMC::Client
 
   def check_login_status
     raise AuthError unless @user || logged_in?
+  end
+
+  # Map String Hash to RestClient style headers
+  def beautify_headers(headers)
+    Hash[
+      headers.map { |k, v|
+        [k.gsub(/-/, '_').downcase.to_sym, v]
+      }
+    ]
   end
 
 end

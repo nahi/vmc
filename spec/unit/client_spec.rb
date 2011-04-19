@@ -267,7 +267,7 @@ describe 'VMC::Client' do
     ENV['http_proxy'] = proxy
     client = VMC::Client.new(@local_target)
     info = client.info
-    RestClient.proxy.should == proxy
+    client.instance_eval { @client.proxy.to_s }.should == proxy
     ENV['http_proxy'] = nil
   end
 
@@ -280,7 +280,7 @@ describe 'VMC::Client' do
     ENV['https_proxy'] = secure_proxy
     client = VMC::Client.new(@local_target)
     info = client.info
-    RestClient.proxy.should == secure_proxy
+    client.instance_eval { @client.proxy.to_s }.should == secure_proxy
     ENV['http_proxy'] = ENV['https_proxy'] = nil
   end
 

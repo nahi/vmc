@@ -19,7 +19,7 @@ spec = Gem::Specification.new do |s|
   s.add_dependency "json_pure", "~> 1.5.1"
   s.add_dependency "rubyzip2", "~> 2.0.1"
   s.add_dependency "highline", "~> 1.6.1"
-  s.add_dependency "httpclient", ">= 2.2.0"
+  s.add_dependency "httpclient", ">= 2.2.0.2"
   s.add_dependency "terminal-table", "~> 1.4.2"
 
   s.add_development_dependency "rake"

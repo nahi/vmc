@@ -379,7 +379,7 @@ class VMC::Client
     else
       proxy = ENV['http_proxy']
     end
-    @client ||= HTTPClient.new(proxy)
+    @client ||= HTTPClient.new(:proxy => proxy)
 
     # Setup tracing if needed
     unless trace.nil?
